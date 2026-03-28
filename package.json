@@ -4,6 +4,6 @@
   "description": "Pre-Ring AI — Call Intent Predictor",
   "main": "api/predict.js",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   }
 }
