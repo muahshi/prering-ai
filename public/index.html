@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-Ring AI — Know Before You Answer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06090d;
+  --surface: #0c1016;
+  --card: #0f1419;
+  --border: #1c2535;
+  --border2: #243040;
+  --accent: #00e5ff;
+  --accent2: #ff3d5a;
+  --accent3: #a8ff3e;
+  --warn: #ffaa00;
+  --text: #dde6f0;
+  --muted: #4a5a70;
+  --muted2: #6a7a90;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Noise texture overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* Grid bg */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow blobs */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+}
+.blob1 { width: 500px; height: 500px; background: var(--accent); top: -200px; left: -150px; }
+.blob2 { width: 400px; height: 400px; background: var(--accent2); bottom: -150px; right: -100px; }
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ─── HEADER ─── */
+header {
+  padding: 32px 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--accent), #0099bb);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 0 20px rgba(0,229,255,0.3);
+}
+
+.logo-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.logo-name em { font-style: normal; color: var(--accent); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chip {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+}
+
+.chip.live {
+  border-color: rgba(168,255,62,0.4);
+  color: var(--accent3);
+  background: rgba(168,255,62,0.06);
+}
+
+.chip.live::before {
+  content: '●';
+  margin-right: 5px;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ─── HERO ─── */
+.hero {
+  padding: 48px 0 36px;
+  text-align: center;
+}
+
+.hero-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards 0.1s;
+}
+
+.hero h1 {
+  font-size: clamp(30px, 6vw, 58px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -2.5px;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards 0.2s;
+}
+
+.hero h1 .accent { color: var(--accent); }
+
+.hero-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: var(--muted2);
+  line-height: 1.7;
+  max-width: 480px;
+  margin: 0 auto 40px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards 0.3s;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── MAIN DEMO CARD ─── */
+.demo-card {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards 0.4s;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+}
+
+.demo-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-dots span {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.demo-dots span:nth-child(1) { background: #ff5f57; }
+.demo-dots span:nth-child(2) { background: #febc2e; }
+.demo-dots span:nth-child(3) { background: #28c840; }
+
+.demo-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 8px;
+  letter-spacing: 1px;
+}
+
+.demo-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+@media (max-width: 620px) {
+  .demo-body { grid-template-columns: 1fr; }
+}
+
+/* ─── LEFT: INPUT ─── */
+.input-panel {
+  padding: 28px;
+  border-right: 1px solid var(--border);
+}
+
+@media (max-width: 620px) {
+  .input-panel { border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+.panel-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted2);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: none;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: rgba(0,229,255,0.5);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.06);
+}
+
+.field textarea { height: 90px; line-height: 1.5; }
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--muted);
+}
+
+/* Quick scenario pills */
+.quick-label {
+  font-size: 10px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  margin-bottom: 8px;
+  margin-top: 4px;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.pill {
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,229,255,0.06);
+}
+
+.predict-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.predict-btn:hover:not(:disabled) {
+  box-shadow: 0 0 30px rgba(0,229,255,0.35);
+  transform: translateY(-1px);
+}
+
+.predict-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ─── RIGHT: OUTPUT ─── */
+.output-panel {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Phone mockup */
+.phone-outer {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+}
+
+.phone {
+  width: 210px;
+  background: #08111a;
+  border: 1.5px solid #1e2e40;
+  border-radius: 34px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 4px #06090d,
+    0 0 0 5px #1a2535,
+    0 20px 50px rgba(0,0,0,0.5);
+  height: 400px;
+  flex-shrink: 0;
+}
+
+.phone-notch {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 70px; height: 22px;
+  background: #08111a;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border-bottom: 1px solid #1e2e40;
+  border-left: 1px solid #1e2e40;
+  border-right: 1px solid #1e2e40;
+  z-index: 5;
+}
+
+.phone-screen {
+  height: 100%;
+  padding: 28px 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.p-statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 16px 6px;
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+}
+
+.p-call-label {
+  text-align: center;
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.p-avatar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.p-avatar {
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  background: rgba(0,229,255,0.08);
+  position: relative;
+}
+
+.p-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,229,255,0.2);
+  animation: avatar-ring 2s ease-in-out infinite;
+}
+
+@keyframes avatar-ring {
+  0%,100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.07); opacity: 1; }
+}
+
+.p-name {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 3px;
+  padding: 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.p-num {
+  text-align: center;
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* AI Bubble on phone */
+.p-ai-bubble {
+  margin: 0 10px 10px;
+  background: rgba(0,229,255,0.07);
+  border: 1px solid rgba(0,229,255,0.25);
+  border-radius: 12px;
+  padding: 9px 10px;
+  min-height: 70px;
+  position: relative;
+  transition: all 0.4s;
+}
+
+.p-ai-bubble.warn {
+  background: rgba(255,61,90,0.07);
+  border-color: rgba(255,61,90,0.3);
+}
+
+.p-ai-bubble.caution {
+  background: rgba(255,170,0,0.07);
+  border-color: rgba(255,170,0,0.3);
+}
+
+.p-bubble-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.p-ai-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.p-ai-dot.warn { background: var(--accent2); }
+.p-ai-dot.caution { background: var(--warn); }
+
+.p-ai-tag {
+  font-size: 8px;
+  font-family: 'Space Mono', monospace;
+  color: var(--accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.p-ai-conf {
+  margin-left: auto;
+  font-size: 8px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(168,255,62,0.12);
+  color: var(--accent3);
+}
+
+.p-ai-conf.warn { background: rgba(255,61,90,0.15); color: var(--accent2); }
+.p-ai-conf.caution { background: rgba(255,170,0,0.15); color: var(--warn); }
+
+.p-ai-text {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.p-ai-sub {
+  font-size: 8px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+/* Idle state */
+.p-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-bottom: 10px;
+}
+
+.p-idle-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  opacity: 0.3;
+}
+
+.p-idle-text {
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 20px;
+}
+
+/* Processing */
+.p-processing {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.proc-ring {
+  width: 40px; height: 40px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.proc-txt {
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Call shown */
+.p-call-shown {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Call buttons */
+.p-call-btns {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-top: auto;
+  padding: 8px 0 14px;
+}
+
+.p-btn {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  user-select: none;
+}
+
+.p-btn:hover { transform: scale(1.1); }
+.p-btn-red { background: var(--accent2); box-shadow: 0 0 16px rgba(255,61,90,0.35); }
+.p-btn-grn { background: var(--accent3); box-shadow: 0 0 16px rgba(168,255,62,0.35); }
+
+/* ─── RESULT PANEL (below phone) ─── */
+.result-block {
+  display: none;
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.result-block.show { display: block; }
+
+.result-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.result-row:last-child { margin-bottom: 0; }
+
+.result-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  background: rgba(0,229,255,0.08);
+}
+
+.result-key {
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.result-val {
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.action-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.action-answer { background: rgba(168,255,62,0.15); color: var(--accent3); }
+.action-ignore { background: rgba(0,229,255,0.1); color: var(--accent); }
+.action-block  { background: rgba(255,61,90,0.15); color: var(--accent2); }
+.action-call_back { background: rgba(255,170,0,0.1); color: var(--warn); }
+
+/* ─── HOW IT WORKS ─── */
+.how-section {
+  margin: 16px 0 24px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards 0.5s;
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+}
+
+.section-title span { color: var(--accent); }
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 620px) {
+  .steps-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.step {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  transition: border-color 0.25s, transform 0.25s;
+}
+
+.step:hover {
+  border-color: rgba(0,229,255,0.3);
+  transform: translateY(-3px);
+}
+
+.step-emoji { font-size: 22px; margin-bottom: 8px; }
+
+.step-n {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.step-t { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+
+.step-d {
+  font-size: 10px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted2);
+  line-height: 1.4;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.footer-left {
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+}
+
+.footer-right {
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted);
+}
+
+.footer-right a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ─── ERROR TOAST ─── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #1a0a10;
+  border: 1px solid var(--accent2);
+  color: var(--accent2);
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  z-index: 9998;
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: #0a1a0a; border-color: var(--accent3); color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <a class="logo" href="#">
+      <div class="logo-mark">📡</div>
+      <div class="logo-name">Pre<em>Ring</em>.AI</div>
+    </a>
+    <div class="header-right">
+      <span class="chip live">Groq Powered</span>
+      <span class="chip">Beta</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">// Call Intent Predictor</div>
+    <h1>Call aane se pehle<br><span class="accent">jaano — kyu aa raha hai.</span></h1>
+    <p class="hero-sub">
+      Caller ka naam + aapka context daalo.<br>
+      AI predict karega intent, urgency, aur action — instantly.
+    </p>
+  </div>
+
+  <!-- MAIN DEMO -->
+  <div class="demo-card">
+    <div class="demo-header">
+      <div class="demo-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="demo-title">prering.ai — live demo</div>
+    </div>
+
+    <div class="demo-body">
+
+      <!-- INPUT PANEL -->
+      <div class="input-panel">
+        <div class="panel-label">Input</div>
+
+        <div class="field">
+          <label>Caller Name / Number</label>
+          <input type="text" id="callerName" placeholder="e.g. Swiggy, +91 98765, Rahul..." />
+        </div>
+
+        <div class="field">
+          <label>Your Recent Context</label>
+          <textarea id="contextText" placeholder="e.g. Maine 20 min pehle Swiggy se order kiya hai. Delivery estimated 7:30 PM.&#10;&#10;Ya: Rahul ka WhatsApp msg aaya tha 'I need help urgently'..."></textarea>
+        </div>
+
+        <div class="quick-label">// Quick scenarios try karo:</div>
+        <div class="pills">
+          <span class="pill" onclick="fillScenario('delivery')">🛵 Food Delivery</span>
+          <span class="pill" onclick="fillScenario('emergency')">🚨 Emergency</span>
+          <span class="pill" onclick="fillScenario('meeting')">📅 Meeting</span>
+          <span class="pill" onclick="fillScenario('spam')">🚫 Spam Call</span>
+          <span class="pill" onclick="fillScenario('boss')">💼 Boss Call</span>
+          <span class="pill" onclick="fillScenario('bank')">🏦 Bank/OTP</span>
+        </div>
+
+        <button class="predict-btn" id="predictBtn" onclick="runPrediction()">
+          <span id="btnText">⚡ Predict Intent</span>
+        </button>
+      </div>
+
+      <!-- OUTPUT PANEL -->
+      <div class="output-panel">
+        <div class="panel-label">Live Preview</div>
+
+        <div class="phone-outer">
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen" id="phoneScreen">
+
+              <!-- IDLE STATE -->
+              <div class="p-idle" id="stateIdle">
+                <div class="p-idle-icon">📱</div>
+                <div class="p-idle-text">Context daalo aur predict karo — yahan AI ka result dikhega</div>
+              </div>
+
+              <!-- PROCESSING STATE -->
+              <div class="p-processing" id="stateProcessing">
+                <div class="proc-ring"></div>
+                <div class="proc-txt">Analyzing...</div>
+              </div>
+
+              <!-- CALL SHOWN STATE -->
+              <div class="p-call-shown" id="stateCall">
+                <div class="p-statusbar"><span id="pTime">9:41</span><span>●●●</span><span>⚡</span></div>
+                <div class="p-call-label">INCOMING CALL</div>
+                <div class="p-avatar-wrap">
+                  <div class="p-avatar" id="pAvatar">📞</div>
+                </div>
+                <div class="p-name" id="pName">Caller</div>
+                <div class="p-num" id="pNum">Unknown Number</div>
+
+                <div class="p-ai-bubble" id="pBubble">
+                  <div class="p-bubble-head">
+                    <div class="p-ai-dot" id="pDot"></div>
+                    <span class="p-ai-tag">Pre-Ring AI</span>
+                    <span class="p-ai-conf" id="pConf">--</span>
+                  </div>
+                  <div class="p-ai-text" id="pPred">--</div>
+                  <div class="p-ai-sub" id="pReason">--</div>
+                </div>
+
+                <div class="p-call-btns">
+                  <div class="p-btn p-btn-red" onclick="showToast('Call rejected 📵', false)">📵</div>
+                  <div class="p-btn p-btn-grn" onclick="showToast('Call accepted ✅', true)">📞</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Result detail block -->
+        <div class="result-block" id="resultBlock">
+          <div class="result-row">
+            <div class="result-icon">🎯</div>
+            <div>
+              <div class="result-key">Prediction</div>
+              <div class="result-val" id="rPred">--</div>
+            </div>
+          </div>
+          <div class="result-row">
+            <div class="result-icon">⚡</div>
+            <div>
+              <div class="result-key">Urgency</div>
+              <div class="result-val" id="rUrgency">--</div>
+            </div>
+          </div>
+          <div class="result-row">
+            <div class="result-icon">✅</div>
+            <div>
+              <div class="result-key">Recommended Action</div>
+              <div class="result-val" id="rAction">--</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-section">
+    <div class="section-title">Kaise kaam karta hai <span>Pre-Ring?</span></div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-emoji">📲</div>
+        <div class="step-n">01</div>
+        <div class="step-t">Context Read</div>
+        <div class="step-d">Phone ke notifications, calendar aur recent apps silently monitor hote hain</div>
+      </div>
+      <div class="step">
+        <div class="step-emoji">🔗</div>
+        <div class="step-n">02</div>
+        <div class="step-t">Caller Match</div>
+        <div class="step-d">Incoming caller ID ko recent activity se match kiya jaata hai</div>
+      </div>
+      <div class="step">
+        <div class="step-emoji">🧠</div>
+        <div class="step-n">03</div>
+        <div class="step-t">AI Inference</div>
+        <div class="step-d">Groq ka fast LLM ek second mein predict karta hai call ka intent</div>
+      </div>
+      <div class="step">
+        <div class="step-emoji">💡</div>
+        <div class="step-n">04</div>
+        <div class="step-t">Context Bubble</div>
+        <div class="step-d">Ring bajne se pehle screen par prediction + action suggestion aata hai</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-left">© 2025 PreRing.AI — Prototype</div>
+    <div class="footer-right">Powered by <a href="https://groq.com" target="_blank">Groq</a> · Built with ❤️</div>
+  </footer>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── SCENARIOS ───
+const scenarios = {
+  delivery: {
+    caller: 'Swiggy Delivery Partner',
+    context: 'Maine aaj 6:45 PM ko Swiggy se Biryani order ki thi. Order status: Out for Delivery. Estimated delivery: 7:15 PM. Abhi 7:10 PM ho gayi hai.'
+  },
+  emergency: {
+    caller: 'Rahul (Close Friend)',
+    context: 'Rahul ne 3 minute pehle WhatsApp pe message kiya: "Yaar please pick up, I\'m in serious trouble. Accident ho gaya." Uske baad message ka response nahi mila.'
+  },
+  meeting: {
+    caller: '+91 99123 45678 (Unknown)',
+    context: 'Aaj meri calendar mein 3:00 PM ko "Client Project Sync - Sharma Enterprises" meeting thi. Abhi 3:02 PM hai. Meeting link send kiya tha par client ne confirm nahi kiya tha.'
+  },
+  spam: {
+    caller: '+91 00011 22233',
+    context: 'Is number ne aaj pichle 1 ghante mein 600+ logon ko call kiya hai. Number ki koi contact history nahi hai. Pehle bhi baar baar call aata tha.'
+  },
+  boss: {
+    caller: 'Sharma Sir (Manager - Office)',
+    context: 'Kal mujhe 5 PM tak quarterly report submit karni thi. Maine submit nahi ki. Aaj subah Sharma Sir ne email kiya tha: "Report kahan hai? Urgent hai." Maine reply nahi kiya.'
+  },
+  bank: {
+    caller: 'SBI Bank Helpline',
+    context: 'Maine 5 minute pehle SBI net banking se ek transaction ki thi jisme OTP aaya tha. Transaction pending show ho rahi hai. Bank ne email kiya tha verification required hai.'
+  }
+};
+
+function fillScenario(key) {
+  const s = scenarios[key];
+  document.getElementById('callerName').value = s.caller;
+  document.getElementById('contextText').value = s.context;
+  document.getElementById('callerName').focus();
+}
+
+// ─── PREDICTION ───
+async function runPrediction() {
+  const caller = document.getElementById('callerName').value.trim();
+  const context = document.getElementById('contextText').value.trim();
+
+  if (!caller || !context) {
+    showToast('Caller name aur context dono daalo!', false);
+    return;
+  }
+
+  // UI: processing state
+  setPhoneState('processing');
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true;
+  document.getElementById('btnText').textContent = '⏳ Predicting...';
+  document.getElementById('resultBlock').classList.remove('show');
+
+  try {
+    const res = await fetch('/api/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callerName: caller, callerNumber: '', context })
+    });
+
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    showResult(caller, data);
+
+  } catch (err) {
+    console.error(err);
+    setPhoneState('idle');
+    showToast('Error: ' + (err.message || 'Try again'), false);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('btnText').textContent = '⚡ Predict Intent';
+  }
+}
+
+function showResult(caller, data) {
+  const { prediction, confidence, urgency, reason, action } = data;
+
+  // Determine tone
+  const isWarn = urgency === 'critical' || action === 'block';
+  const isCaution = urgency === 'high' || action === 'call_back';
+
+  // Avatar emoji based on urgency
+  const avatarMap = { critical: '🚨', high: '⚠️', medium: '📞', low: '📱' };
+  const avatar = avatarMap[urgency] || '📞';
+
+  // Update phone UI
+  document.getElementById('pAvatar').textContent = avatar;
+  document.getElementById('pName').textContent = caller.length > 18 ? caller.slice(0, 17) + '…' : caller;
+  document.getElementById('pNum').textContent = 'Incoming Call';
+  document.getElementById('pPred').textContent = prediction;
+  document.getElementById('pReason').textContent = '↳ ' + reason;
+  document.getElementById('pConf').textContent = confidence + '%';
+
+  // Color classes
+  const bubble = document.getElementById('pBubble');
+  const dot = document.getElementById('pDot');
+  const conf = document.getElementById('pConf');
+  bubble.className = 'p-ai-bubble' + (isWarn ? ' warn' : isCaution ? ' caution' : '');
+  dot.className = 'p-ai-dot' + (isWarn ? ' warn' : isCaution ? ' caution' : '');
+  conf.className = 'p-ai-conf' + (isWarn ? ' warn' : isCaution ? ' caution' : '');
+
+  // Update clock
+  const now = new Date();
+  document.getElementById('pTime').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+  setPhoneState('call');
+
+  // Result block
+  document.getElementById('rPred').textContent = prediction;
+
+  const urgencyEmoji = { low: '🟢 Low', medium: '🟡 Medium', high: '🟠 High', critical: '🔴 Critical' };
+  document.getElementById('rUrgency').textContent = urgencyEmoji[urgency] || urgency;
+
+  const actionEl = document.getElementById('rAction');
+  actionEl.innerHTML = `<span class="action-tag action-${action}">${action.replace('_', ' ')}</span>`;
+
+  document.getElementById('resultBlock').classList.add('show');
+}
+
+// ─── PHONE STATE MACHINE ───
+function setPhoneState(state) {
+  document.getElementById('stateIdle').style.display = state === 'idle' ? 'flex' : 'none';
+  document.getElementById('stateProcessing').style.display = state === 'processing' ? 'flex' : 'none';
+  document.getElementById('stateCall').style.display = state === 'call' ? 'flex' : 'none';
+}
+
+// ─── TOAST ───
+function showToast(msg, success = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (success ? ' success' : '') + ' show';
+  setTimeout(() => { t.className = 'toast' + (success ? ' success' : ''); }, 2500);
+}
+
+// Init
+setPhoneState('idle');
+</script>
+</body>
+</html>
+
